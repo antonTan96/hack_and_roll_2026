@@ -1,3 +1,4 @@
+from urllib import response
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from model.fold_data_model import FoldData
@@ -102,8 +103,8 @@ async def process_user_bid(data: UserBidData):
     else:
         app.state.current_bid_session.update_bid("agent", agent_bid)
         response['end'] = False
-        response["current_highest_bid"] = app.state.current_bid_session.current_bid
-
+            
+    response["current_highest_bid"] = app.state.current_bid_session.current_bid
     response["current_highest_bidder"] = app.state.current_bid_session.current_bidder
 
     return response
