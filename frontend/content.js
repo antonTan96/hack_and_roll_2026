@@ -56,8 +56,26 @@
     "contextmenu"
   ];
 
-  // Case 3: Auction required
-  startAuction();
+  // Case 3: Auction required (Both are false)
+  try {
+    const startRes = await fetch(`http://localhost:8000/start_bid/${hostname}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      credentials: "omit"
+    });
+
+    if (startRes.ok) {
+      console.log(`Auction initialized for ${hostname}`);
+      startAuction();
+    } else {
+      console.error("Failed to initialize auction on backend");
+      return;
+    }
+  } catch (err) {
+    console.error("Error starting auction:", err);
+  }
 
   /* ---------------------------------
      2. Auction Logic
