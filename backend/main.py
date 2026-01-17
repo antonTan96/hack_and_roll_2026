@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from model.fold_data_model import FoldData
+from model.user_bid_data_model import UserBidData
 from bidding_agent import Agent
 
 app = FastAPI()
@@ -22,9 +24,11 @@ app.state.user_budget = 1000
 async def root():
     return {"message": "Welcome to the API"}
 
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
 
 @app.post("/query_data/{hostname}")
 async def query_data(hostname: str):
@@ -38,11 +42,15 @@ async def query_data(hostname: str):
         "owned_by_ai": own_by_ai
     }
 
+
 @app.post("/fold")
-async def fold(user: bool, hostname: str, winning_bid: int):
+async def fold(data: FoldData):
     '''
     rewards hostname to winner
     '''
+    user = data.user
+    hostname = data.hostname
+    winning_bid = data.winning_bid
     if user:
         app.state.user_budget -= winning_bid
         app.state.user_owned_hostnames.add(hostname)
@@ -52,8 +60,9 @@ async def fold(user: bool, hostname: str, winning_bid: int):
         app.state.agent.add_hostname(hostname)
     return {"message": "Fold processed"}
 
+
 @app.post("/bid")
-async def process_user_bid(user_bid: int):
+async def process_user_bid(data: UserBidData):
     '''
     Simulates one round of the bidding process. 
     Calls query_agent_bid to get the agent's bid.
@@ -61,11 +70,11 @@ async def process_user_bid(user_bid: int):
     pass
 
 
-async def query_agent_bid( user_bid: int,user_owned_hostnames: list):
+async def query_agent_bid(data: UserBidData) -> int:
     '''
     returns agent bid or -1 if agent decides to fold.
     '''
-
+    user_bid = data.user_bid   
     return app.state.agent.bid(user_bid, app.state.user_owned_hostnames)
     
 
