@@ -84,3 +84,14 @@
   min-height: 1.2em;
   color: #d9534f !important; /* Red-ish color for status/errors */
 }
+
+#budget-display {
+  background: #e9ecef;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: bold;
+  color: #495057 !important;
+  display: inline-block;
+  margin-bottom: 10px;
+}
