@@ -12,6 +12,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#configure global state variables here 
+app.state.agent_budget = 1000
+app.state.user_owned_hostnames = []
+app.state.agent_owned_hostnames = []
+app.state.user_budget = 1000
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the API"}
@@ -20,23 +26,34 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/query_data")
-async def query_data():
+@app.post("/query_data/{hostname}")
+async def query_data(hostname: str):
     '''
-    Check database if user or AI owns hostname. if neither, start bidding process
-    '''
-    
-    pass
-    
-@app.get("/submit_bid") 
-async def start_bidding():
-    '''
-    bidding loop until someone wins, then save result to db
+    Check database if user or AI owns hostname. if neither, ask frontend to start bidding process
     '''
     pass
 
-async def query_agent_bid():
-    return {"bid": 100}
+@app.post("/fold")
+async def fold(user: bool):
+    '''
+    rewards hostname to winner
+    '''
+    pass
+
+@app.post("/bid")
+async def process_user_bid(user_bid: int):
+    '''
+    Simulates one round of the bidding process. 
+    Calls query_agent_bid to get the agent's bid.
+    '''
+    pass
+
+
+async def query_agent_bid( user_bid: int, agent_budget: int, user_owned_hostnames: list, agent_owned_hostnames: list):
+    '''
+    returns agent bid or -1 if agent decides to fold.
+    '''
+    pass
     
 
 if __name__ == "__main__":
