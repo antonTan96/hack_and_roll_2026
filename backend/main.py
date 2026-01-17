@@ -86,24 +86,26 @@ async def process_user_bid(data: UserBidData):
     '''
     Simulates one round of the bidding process. 
     Calls query_agent_bid to get the agent's bid.
-    Returns the agents bid
     '''
     if app.state.current_bid_session is None:
         return {"message": "There are no bidding running now, please try again later"}
     
     app.state.current_bid_session.update_bid("user", data.user_bid)
     agent_bid = query_agent_bid(data)
-    
-    if agent_bid != -1:
-        app.state.current_bid_session.update_bid("agent", agent_bid)
-    else:
-        return {"message": "Agent has folded", "agent_bid": agent_bid}
+   
 
     response = {
         "message": "Agent bid processed",
-        "agent_bid": agent_bid
+        "current_highest_bidder": app.state.current_bid_session.current_bidder,
+        "current_highest_bid": app.state.current_bid_session.current_bid
     }
-    
+    if agent_bid == -1:
+        app.state.current_bid_session.fold("agent")
+        response['end'] = True
+    else:
+        app.state.current_bid_session.update_bid("agent", agent_bid)
+        response['end'] = False
+
     return response
 
 
