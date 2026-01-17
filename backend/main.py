@@ -96,8 +96,6 @@ async def process_user_bid(data: UserBidData):
 
     response = {
         "message": "Agent bid processed",
-        "current_highest_bidder": app.state.current_bid_session.current_bidder,
-        "current_highest_bid": app.state.current_bid_session.current_bid
     }
     if agent_bid == -1:
         app.state.current_bid_session.fold("agent")
@@ -105,6 +103,9 @@ async def process_user_bid(data: UserBidData):
     else:
         app.state.current_bid_session.update_bid("agent", agent_bid)
         response['end'] = False
+        response["current_highest_bid"] = app.state.current_bid_session.current_bid
+        
+    response["current_highest_bidder"] = app.state.current_bid_session.current_bidder
 
     return response
 
