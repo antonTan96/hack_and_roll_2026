@@ -31,7 +31,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/query_data/{hostname}")
+@app.get("/query_data/{hostname}")
 async def query_data(hostname: str):
     '''
     Check database if user or AI owns hostname. if neither, ask frontend to start bidding process
