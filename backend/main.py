@@ -30,9 +30,9 @@ async def root():
     return {"message": "Welcome to the API"}
 
 
-@app.get("/health")
-async def health_check():
-    return {"status": "healthy"}
+@app.get("/budget")
+async def get_budget():
+    return {"user_budget": app.state.user_budget}
 
 
 @app.get("/query_data/{hostname}")
