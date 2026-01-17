@@ -144,6 +144,7 @@
           type="number"
           id="bid-input"
           placeholder="Enter your bid"
+          min="10"
         />
 
         <div class="buttons">
@@ -204,7 +205,7 @@
         const res = await fetch(`http://localhost:8000/bid`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ user_bid: userBid, hostname: hostname })
+          body: JSON.stringify({ user_bid: userBid })
         });
 
         const data = await res.json();
