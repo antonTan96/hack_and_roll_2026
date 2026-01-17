@@ -90,8 +90,9 @@ async def process_user_bid(data: UserBidData):
     '''
     if app.state.current_bid_session is None:
         return {"message": "There are no bidding running now, please try again later"}
-    
-    if not app.state.current_bid_session.update_bid("user", data.user_bid):
+    elif app.state.user_budget < data.user_bid:
+        return {"message": "Your budget is too low to bid"}
+    elif not app.state.current_bid_session.update_bid("user", data.user_bid):
         return {
             "message": "Your bid is too low. Please bid higher than the current highest bid plus 10.",
             "current_highest_bid": app.state.current_bid_session.current_bid,
@@ -106,7 +107,7 @@ async def process_user_bid(data: UserBidData):
     }
     if agent_bid == -1:
         response['end'] = True
-    else:
+    elif app.state.agent.budget >= agent_bid:
         app.state.current_bid_session.update_bid("agent", agent_bid)
         response['end'] = False
             
