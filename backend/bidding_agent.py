@@ -9,7 +9,8 @@ class Agent:
         # Simple strategy: bid 10% higher than user bid if budget allows, else fold
         proposed_bid = int(max(user_bid * 1.1, user_bid + 10))
         if len(user_owned_hostnames) < 5:
-            proposed_bid = min(proposed_bid, 50)  # Cap bid if user owns less than 5 hostnames
+            if proposed_bid > 50:
+                return -1
         if proposed_bid <= self.limit:
             return proposed_bid
         else:
