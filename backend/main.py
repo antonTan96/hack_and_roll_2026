@@ -91,7 +91,7 @@ async def process_user_bid(data: UserBidData):
         return {"message": "There are no bidding running now, please try again later"}
     
     app.state.current_bid_session.update_bid("user", data.user_bid)
-    agent_bid = query_agent_bid(data)
+    agent_bid = await query_agent_bid(data)
    
 
     response = {
