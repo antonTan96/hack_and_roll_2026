@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from model.fold_data_model import FoldData
 from model.user_bid_data_model import UserBidData
 from bidding_agent import Agent
+from bidding import Bidding
 
 app = FastAPI()
 
@@ -19,6 +20,7 @@ app.add_middleware(
 app.state.agent = Agent(budget=1000, owned_hostnames=set())
 app.state.user_owned_hostnames = set()
 app.state.user_budget = 1000
+app.state.current_bid_session = None
 
 
 @app.get("/")
@@ -67,10 +69,10 @@ async def start_bid(hostname: str):
     """
     Starts a bid
     
-    :param hostname: Description
+    :param hostname: hostname to bid
     :type hostname: str
     """
-    pass
+    app.state.current_bid_session = Bidding(hostname)
 
 
 @app.post("/bid")
@@ -79,7 +81,21 @@ async def process_user_bid(data: UserBidData):
     Simulates one round of the bidding process. 
     Calls query_agent_bid to get the agent's bid.
     '''
-    pass
+    if app.state.current_bid_session is None:
+        return {"message": "There are no bidding running now, please try again later"}
+    
+    app.state.current_bid_session.update_bid("user", data.user_bid)
+    agent_bid = query_agent_bid(data)
+    app.state.current_bid_session.update_bid("agent", agent_bid)
+
+    response = {
+        "message": "A bid has done",
+        "current_highest_bidder": app.state.current_bid_session.current_bidder,
+        "current_highest_bid": app.state.current_bid_session.current_bid
+    }
+
+    return response
+
 
 
 async def query_agent_bid(data: UserBidData) -> int:
