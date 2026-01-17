@@ -92,7 +92,8 @@ async def process_user_bid(data: UserBidData):
     if app.state.current_bid_session is None:
         return {"message": "There are no bidding running now, please try again later"}
     elif app.state.user_budget < data.user_bid:
-        return {"message": "Your budget is too low to bid"}
+        return {"message": "Your budget is too low to bid",
+                "retry": True}
     elif not app.state.current_bid_session.update_bid("user", data.user_bid):
         return {
             "message": "Your bid is too low. Please bid higher than the current highest bid plus 10.",
