@@ -147,7 +147,7 @@
           placeholder="Enter your bid"
         />
 
-        <div style="display:flex; gap:8px; justify-content:center;">
+        <div class="buttons">
           <button id="bid-btn">Place Bid</button>
           <button id="fold-btn">Fold</button>
         </div>
