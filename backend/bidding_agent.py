@@ -17,7 +17,9 @@ class Agent:
             return -1  # Fold
     
     def update_budget(self, amount: int):
-        self.budget -= amount
+
+        self.budget = self.budget - amount
+        print(f"Agent budget updated after bid{amount}: {self.budget}")
 
     def add_hostname(self, hostname: str):
         self.owned_hostnames.add(hostname)

@@ -20,9 +20,12 @@ class LLM_Bidding_Agent(Agent):
         super().__init__(budget, owned_hostnames)
         self.llm_model = llm_model  # Placeholder for LLM model instance
         self.website_descriptions = {}
+        self.current_hostname = None
+        self.bid_history = {}
     
     def add_website_descriptions(self, hostname:str):
         prompt = f"Give a short description of this website that has the hostname:{hostname}"
+        self.current_hostname = hostname
         response = self.llm_model.invoke(prompt)
         self.website_descriptions[hostname] = response.text
         print(f"Added description for {hostname}: {response.text}")
@@ -30,6 +33,7 @@ class LLM_Bidding_Agent(Agent):
     def bid(self, user_bid: int, user_owned_hostnames: list) -> int:
         # Implement a more sophisticated bidding strategy using the LLM
         # For example, generate a prompt based on the current state and get a bid suggestion from the LLM
+        self.bid_history[self.current_hostname] = user_bid
         prompt = f'''
         You are an intelligent bidding agent against a user trying to use the internet.
         Your goal is to acquire as many hostnames as possible within your budget.
@@ -39,15 +43,18 @@ class LLM_Bidding_Agent(Agent):
         User owned hostnames: {user_owned_hostnames}, 
         Your budget: {self.budget}, 
         Your owned hostnames: {self.owned_hostnames}. 
-        The descriptions of some hostnames that have been previously bid are as follows: {self.website_descriptions}.
+        The descriptions of some hostnames that have been previously or currently bid are as follows: {self.website_descriptions}.
+        You are currently bidding for the hostname: {self.current_hostname}, whose description is: {self.website_descriptions.get(self.current_hostname, "No description available")}.
+        User bidding history for each hostname: {self.bid_history}.
         You may use this information to inform your bidding strategy, which may involve deciphering user intent.
         Based on this information,
-        Suggest a bid and your reasoning behind it. 
+        Suggest a bid and your reasoning behind it.
+        THink carefully about how much to bid to maximize your chances of winning while conserving budget for future bids. 
         Your bid should be at the end of the response, with the following format:
         #### "your bid"
         Set "your bid" to -1 if you want to fold.
         '''
-        
+        # print("LLM Prompt:", prompt)
         # Placeholder for LLM response
         # llm_response = self.llm_model.generate_bid(prompt)  # This method should be defined in the LLM model
         

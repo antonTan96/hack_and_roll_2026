@@ -81,7 +81,8 @@ async def start_bid(hostname: str):
     :type hostname: str
     """
     app.state.current_bid_session = Bidding(hostname)
-    app.state.agent.add_website_descriptions(hostname)
+    if type(app.state.agent) == LLM_Bidding_Agent:
+        app.state.agent.add_website_descriptions(hostname)
 
 
 @app.post("/bid")
