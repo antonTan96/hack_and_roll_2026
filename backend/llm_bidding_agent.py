@@ -19,6 +19,13 @@ class LLM_Bidding_Agent(Agent):
     def __init__(self, budget: int, owned_hostnames: set, llm_model=interfaze):
         super().__init__(budget, owned_hostnames)
         self.llm_model = llm_model  # Placeholder for LLM model instance
+        self.website_descriptions = {}
+    
+    def add_website_descriptions(self, hostname:str):
+        prompt = f"Give a short description of this website that has the hostname:{hostname}"
+        response = self.llm_model.invoke(prompt)
+        self.website_descriptions[hostname] = response.text
+        print(f"Added description for {hostname}: {response.text}")
 
     def bid(self, user_bid: int, user_owned_hostnames: list) -> int:
         # Implement a more sophisticated bidding strategy using the LLM
@@ -32,21 +39,26 @@ class LLM_Bidding_Agent(Agent):
         User owned hostnames: {user_owned_hostnames}, 
         Your budget: {self.budget}, 
         Your owned hostnames: {self.owned_hostnames}. 
-        Suggest a bid. Only respond with an integer bid amount or -1 to fold.
+        The descriptions of some hostnames that have been previously bid are as follows: {self.website_descriptions}.
+        You may use this information to inform your bidding strategy, which may involve deciphering user intent.
+        Based on this information,
+        Suggest a bid and your reasoning behind it. 
+        Your bid should be at the end of the response, with the following format:
+        #### "your bid"
+        Set "your bid" to -1 if you want to fold.
         '''
         
         # Placeholder for LLM response
         # llm_response = self.llm_model.generate_bid(prompt)  # This method should be defined in the LLM model
         
         llm_response = self.llm_model.invoke(prompt)
+        reasoning = llm_response.text
+        print("LLM Reasoning:", reasoning)
         try:
-            proposed_bid = int(llm_response.text)
+            proposed_bid = int(llm_response.text.split("####")[-1].strip())
         
         except Exception as e:
             print(e)
             return -1 
         
-        if proposed_bid <= self.limit:
-            return proposed_bid
-        else:
-            return -1  # Fold
+        return proposed_bid
