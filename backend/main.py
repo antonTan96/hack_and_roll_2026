@@ -18,6 +18,7 @@ app.add_middleware(
 #configure global state variables here 
 app.state.agent = Agent(budget=1000, owned_hostnames=set())
 app.state.user_owned_hostnames = set()
+app.state.transaction_history = []
 app.state.user_budget = 1000
 
 
@@ -59,6 +60,11 @@ async def fold(data: FoldData):
         # AI wins
         app.state.agent.update_budget(winning_bid)
         app.state.agent.add_hostname(hostname)
+    app.state.transaction_history.append({
+        "hostname": hostname,
+        "winner": "user" if user else "ai",
+        "winning_bid": winning_bid
+    })
     return {"message": "Fold processed"}
 
 
@@ -87,6 +93,7 @@ async def restart():
     app.state.user_owned_hostnames = set()
     app.state.user_budget = 1000
     return {"message": "Game restarted"}
+
 
 async def query_agent_bid(data: UserBidData) -> int:
     '''
