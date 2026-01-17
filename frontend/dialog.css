@@ -30,12 +30,12 @@
   margin: 10px 0;
 }
 
-.buttons {
+#auction-dialog .buttons {
   display: flex;
   justify-content: space-between;
 }
 
-button {
+#auction-dialog button {
   padding: 8px 12px;
   cursor: pointer;
 }

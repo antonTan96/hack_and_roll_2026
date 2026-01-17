@@ -67,7 +67,6 @@
     });
 
     if (startRes.ok) {
-      console.log(`Auction initialized for ${hostname}`);
       startAuction();
     } else {
       console.error("Failed to initialize auction on backend");
