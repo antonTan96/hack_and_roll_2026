@@ -1,0 +1,41 @@
+#auction-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#auction-dialog {
+  background: white;
+  padding: 20px;
+  width: 320px;
+  border-radius: 8px;
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+#auction-dialog h2 {
+  margin-top: 0;
+}
+
+#bid-input {
+  width: 100%;
+  padding: 8px;
+  margin: 10px 0;
+}
+
+.buttons {
+  display: flex;
+  justify-content: space-between;
+}
+
+button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
