@@ -130,22 +130,14 @@
     const overlay = document.createElement("div");
     overlay.id = "auction-overlay";
 
+    // Added <span id="budget-display"> to the HTML
     overlay.innerHTML = `
-      <div
-        id="auction-dialog"
-        role="dialog"
-        aria-modal="true"
-        tabindex="-1"
-      >
+      <div id="auction-dialog" role="dialog" aria-modal="true" tabindex="-1">
+        <div id="budget-display">Budget: Fetching...</div>
         <h2>Website Access Auction</h2>
         <p>Bid against an AI agent to use <b>${hostname}</b>.</p>
 
-        <input
-          type="number"
-          id="bid-input"
-          placeholder="Enter your bid"
-          min="10"
-        />
+        <input type="number" id="bid-input" placeholder="Enter your bid" />
 
         <div class="buttons">
           <button id="bid-btn">Place Bid</button>
@@ -158,45 +150,53 @@
 
     document.body.appendChild(overlay);
 
-    const dialog = document.getElementById("auction-dialog");
+    const budgetDisplay = document.getElementById("budget-display");
     const bidInput = document.getElementById("bid-input");
     const bidBtn = document.getElementById("bid-btn");
     const foldBtn = document.getElementById("fold-btn");
     const statusText = document.getElementById("status-text");
 
-    dialog.focus();
-    bidInput.focus();
+    let currentHighestBid = 0;
+    let userBudget = 0; // Local budget state
 
-    /* Focus trap */
-    window.addEventListener(
-      "focusin",
-      (e) => {
-        if (!dialog.contains(e.target)) {
-          e.stopPropagation();
-          dialog.focus();
-        }
-      },
-      true
-    );
+    // --- Fetch Budget ---
+    const fetchBudget = async () => {
+      try {
+        const res = await fetch("http://localhost:8000/budget");
+        const data = await res.json();
+        userBudget = data.user_budget; // assuming backend returns { budget: 1000 }
+        console.log(data);
+        budgetDisplay.textContent = `Budget: $${userBudget}`;
+      } catch (err) {
+        console.error("Budget fetch failed:", err);
+        budgetDisplay.textContent = "Budget: Unavailable";
+      }
+    };
 
-    /* -----------------------------
-       5. Button Handlers
-    ------------------------------ */
-    
-    let currentHighestBid = 0; // Track the auction state locally
+    fetchBudget();
+
     const updateStatus = (msg) => { statusText.textContent = msg; };
 
     bidBtn.onclick = async () => {
       const userBid = parseInt(bidInput.value, 10);
       const minRequired = currentHighestBid + 10;
 
-      // Validation: Check against the +10 rule
-      if (!userBid || userBid < minRequired) {
-        updateStatus(`Bid must be at least ${minRequired}.`);
+      // --- Frontend Validation ---
+      if (!userBid) {
+        updateStatus("Please enter a valid number.");
+        return;
+      }
+      
+      if (userBid > userBudget) {
+        updateStatus(`Insufficient funds! Your budget is only $${userBudget}.`);
         return;
       }
 
-      // UI Feedback
+      if (userBid < minRequired) {
+        updateStatus(`Bid too low! You must bid at least $${minRequired}.`);
+        return;
+      }
+
       bidInput.disabled = true;
       bidBtn.disabled = true;
       updateStatus("Agent is thinking...");
@@ -211,27 +211,29 @@
         const data = await res.json();
 
         if (data.retry) {
-          updateStatus("Bid rejected by server. Try a higher amount.");
+          // Backend says no - let's determine why
+          if (userBid > userBudget) {
+              updateStatus("Rejected: Bid exceeds current budget.");
+          } else {
+              updateStatus("Rejected: Someone outbid you while you were typing!");
+          }
           bidInput.disabled = false;
           bidBtn.disabled = false;
           return;
         }
 
-        // Update our local tracking with the latest bid from server
         currentHighestBid = data.current_highest_bid;
 
         if (!data.end) {
-          // AI counter-bid occurred (or user bid was accepted and AI is still in)
           const nextMin = currentHighestBid + 10;
-          updateStatus(`Current bid: ${currentHighestBid} (${data.current_highest_bidder}). Min next bid: ${nextMin}`);
+          updateStatus(`Current: $${currentHighestBid} (${data.current_highest_bidder}). Min: $${nextMin}`);
           
           bidInput.disabled = false;
           bidBtn.disabled = false;
           bidInput.value = ""; 
           bidInput.focus();
         } else {
-          // AI Folded
-          updateStatus(`AI Folded! You won with ${currentHighestBid}.`);
+          updateStatus(`AI Folded! You won with $${currentHighestBid}.`);
           await finalizeAuction(hostname, true, currentHighestBid);
           
           setTimeout(() => {
