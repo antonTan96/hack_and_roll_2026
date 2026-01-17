@@ -14,9 +14,8 @@ app.add_middleware(
 )
 
 #configure global state variables here 
-app.state.agent = Agent(budget=1000, owned_hostnames=[])
-app.state.user_owned_hostnames = []
-app.state.agent_owned_hostnames = []
+app.state.agent = Agent(budget=1000, owned_hostnames=set())
+app.state.user_owned_hostnames = set()
 app.state.user_budget = 1000
 
 @app.get("/")
@@ -32,14 +31,26 @@ async def query_data(hostname: str):
     '''
     Check database if user or AI owns hostname. if neither, ask frontend to start bidding process
     '''
-    pass
+    own_by_user: bool = hostname in app.state.user_owned_hostnames
+    own_by_ai: bool = app.state.agent.owns_hostname(hostname)
+    return {
+        "owned_by_user": own_by_user,
+        "owned_by_ai": own_by_ai
+    }
 
 @app.post("/fold")
-async def fold(user: bool, winning_bid: int):
+async def fold(user: bool, hostname: str, winning_bid: int):
     '''
     rewards hostname to winner
     '''
-    pass
+    if user:
+        app.state.user_budget -= winning_bid
+        app.state.user_owned_hostnames.add(hostname)
+    else:
+        # AI wins
+        app.state.agent.update_budget(winning_bid)
+        app.state.agent.add_hostname(hostname)
+    return {"message": "Fold processed"}
 
 @app.post("/bid")
 async def process_user_bid(user_bid: int):
