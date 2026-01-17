@@ -1,7 +1,8 @@
 class Agent:
-    def __init__(self, budget: int, owned_hostnames: list):
+    def __init__(self, budget: int, owned_hostnames: set):
         self.budget = budget
         self.limit = min(100, budget)  # Example limit calculation
+        self.owned_hostnames = owned_hostnames
     
     def bid(self, user_bid: int, user_owned_hostnames: list) -> int:
         # if user owns less than 5 hostnames, bid on lower limit
@@ -16,3 +17,6 @@ class Agent:
     
     def update_budget(self, amount: int):
         self.budget -= amount
+    
+    def add_hostname(self, hostname: str):
+        self.owned_hostnames.add(hostname)
