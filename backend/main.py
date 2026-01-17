@@ -20,6 +20,7 @@ app.state.agent = Agent(budget=1000, owned_hostnames=set())
 app.state.user_owned_hostnames = set()
 app.state.user_budget = 1000
 
+
 @app.get("/")
 async def root():
     return {"message": "Welcome to the API"}
@@ -59,6 +60,17 @@ async def fold(data: FoldData):
         app.state.agent.update_budget(winning_bid)
         app.state.agent.add_hostname(hostname)
     return {"message": "Fold processed"}
+
+
+@app.post("/start_bid/{hostname}")
+async def start_bid(hostname: str):
+    """
+    Starts a bid
+    
+    :param hostname: Description
+    :type hostname: str
+    """
+    pass
 
 
 @app.post("/bid")
