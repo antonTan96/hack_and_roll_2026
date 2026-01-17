@@ -1,3 +1,4 @@
+from urllib import response
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from model.fold_data_model import FoldData
@@ -90,7 +91,13 @@ async def process_user_bid(data: UserBidData):
     if app.state.current_bid_session is None:
         return {"message": "There are no bidding running now, please try again later"}
     
-    app.state.current_bid_session.update_bid("user", data.user_bid)
+    if not app.state.current_bid_session.update_bid("user", data.user_bid):
+        return {
+            "message": "Your bid is too low. Please bid higher than the current highest bid plus 10.",
+            "current_highest_bid": app.state.current_bid_session.current_bid,
+            "current_highest_bidder": app.state.current_bid_session.current_bidder,
+            "retry": True
+        }
     agent_bid = await query_agent_bid(data)
    
 
@@ -102,9 +109,10 @@ async def process_user_bid(data: UserBidData):
     else:
         app.state.current_bid_session.update_bid("agent", agent_bid)
         response['end'] = False
-        response["current_highest_bid"] = app.state.current_bid_session.current_bid
-
+            
+    response["current_highest_bid"] = app.state.current_bid_session.current_bid
     response["current_highest_bidder"] = app.state.current_bid_session.current_bidder
+    response["retry"] = False
 
     return response
 

@@ -3,7 +3,7 @@ Bidding class for storing current bid details
 """
 
 class Bidding:
-    def __init__(self, hostname: str, starting_bid: int = 100, increment: int = 10):
+    def __init__(self, hostname: str, starting_bid: int = 10, increment: int = 10):
         self.hostname = hostname
         self.starting_bid = starting_bid
         self.increment = increment
