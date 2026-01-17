@@ -8,7 +8,7 @@ class Bidding:
         self.starting_bid = starting_bid
         self.increment = increment
         self.current_bidder = ""
-        self.current_bid = 0
+        self.current_bid = starting_bid
 
     def update_bid(self, bidder: str, bid: int) -> bool:
         """
@@ -21,7 +21,8 @@ class Bidding:
         :return: True if bid has changed, otherwise False
         :rtype: bool
         """
-        if bid <= max(self.starting_bid, self.current_bid) + self.increment:
+        print(bid,max(self.starting_bid, self.current_bid) + self.increment)
+        if bid < max(self.starting_bid, self.current_bid) + self.increment:
             return False
         
         self.current_bid = bid

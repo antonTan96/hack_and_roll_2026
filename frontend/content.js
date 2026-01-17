@@ -67,7 +67,6 @@
     });
 
     if (startRes.ok) {
-      console.log(`Auction initialized for ${hostname}`);
       startAuction();
     } else {
       console.error("Failed to initialize auction on backend");
@@ -147,7 +146,7 @@
           placeholder="Enter your bid"
         />
 
-        <div style="display:flex; gap:8px; justify-content:center;">
+        <div class="buttons">
           <button id="bid-btn">Place Bid</button>
           <button id="fold-btn">Fold</button>
         </div>
@@ -182,49 +181,96 @@
     /* -----------------------------
        5. Button Handlers
     ------------------------------ */
+    
+    let currentHighestBid = 0; // Track the auction state locally
+    const updateStatus = (msg) => { statusText.textContent = msg; };
 
     bidBtn.onclick = async () => {
-      const bid = bidInput.value;
+      const userBid = parseInt(bidInput.value, 10);
+      const minRequired = currentHighestBid + 10;
 
-      if (!bid || Number(bid) <= 0) {
-        statusText.textContent = "Please enter a valid bid.";
+      // Validation: Check against the +10 rule
+      if (!userBid || userBid < minRequired) {
+        updateStatus(`Bid must be at least ${minRequired}.`);
         return;
       }
 
+      // UI Feedback
       bidInput.disabled = true;
       bidBtn.disabled = true;
-      foldBtn.disabled = true;
+      updateStatus("Agent is thinking...");
 
-      statusText.textContent = "Submitting bid...";
+      try {
+        const res = await fetch(`http://localhost:8000/bid`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_bid: userBid, hostname: hostname })
+        });
 
-      // 🔗 Replace with real backend call
-      // const res = await fetch(`/submit_bid/${hostname}`, {...})
+        const data = await res.json();
 
-      setTimeout(() => {
-        const userWon = true; // mock result
+        if (data.retry) {
+          updateStatus("Bid rejected by server. Try a higher amount.");
+          bidInput.disabled = false;
+          bidBtn.disabled = false;
+          return;
+        }
 
-        if (userWon) {
-          statusText.textContent = "You won the auction! Access granted.";
+        // Update our local tracking with the latest bid from server
+        currentHighestBid = data.current_highest_bid;
+
+        if (!data.end) {
+          // AI counter-bid occurred (or user bid was accepted and AI is still in)
+          const nextMin = currentHighestBid + 10;
+          updateStatus(`Current bid: ${currentHighestBid} (${data.current_highest_bidder}). Min next bid: ${nextMin}`);
+          
+          bidInput.disabled = false;
+          bidBtn.disabled = false;
+          bidInput.value = ""; 
+          bidInput.focus();
+        } else {
+          // AI Folded
+          updateStatus(`AI Folded! You won with ${currentHighestBid}.`);
+          await finalizeAuction(hostname, true, currentHighestBid);
+          
           setTimeout(() => {
             removeBlockers();
             overlay.remove();
-          }, 800);
-        } else {
-          statusText.textContent = "You lost the auction.";
-          setTimeout(() => {
-            removeBlockers();
-            window.location.href = "about:blank";
-          }, 800);
+          }, 1500);
         }
-      }, 1200);
+      } catch (err) {
+        console.error("Bidding error:", err);
+        updateStatus("Connection lost.");
+        bidInput.disabled = false;
+        bidBtn.disabled = false;
+      }
     };
 
-    foldBtn.onclick = () => {
-      statusText.textContent = "You folded. Access denied.";
+    const finalizeAuction = async (host, winner, bid) => {
+      try {
+        await fetch(`http://localhost:8000/fold`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: winner,
+            hostname: host,
+            winning_bid: bid
+          })
+        });
+      } catch (err) {
+        console.error("Finalization failed:", err);
+      }
+    };
+
+    foldBtn.onclick = async () => {
+      updateStatus("You folded. Access denied.");
+      // If user folds, the winner is 'ai' (or however your backend tracks it)
+      await finalizeAuction(hostname, false, 0); 
+      
       setTimeout(() => {
         removeBlockers();
         window.location.href = "about:blank";
-      }, 500);
+      }, 1000);
     };
   }
 })();
