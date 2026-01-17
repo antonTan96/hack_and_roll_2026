@@ -112,6 +112,7 @@ async def process_user_bid(data: UserBidData):
             
     response["current_highest_bid"] = app.state.current_bid_session.current_bid
     response["current_highest_bidder"] = app.state.current_bid_session.current_bidder
+    response["retry"] = False
 
     return response
 
