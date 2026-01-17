@@ -22,7 +22,7 @@ class Bidding:
         :rtype: bool
         """
         print(bid,max(self.starting_bid, self.current_bid) + self.increment)
-        if bid <= max(self.starting_bid, self.current_bid) + self.increment:
+        if bid < max(self.starting_bid, self.current_bid) + self.increment:
             return False
         
         self.current_bid = bid
