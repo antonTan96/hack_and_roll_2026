@@ -91,7 +91,13 @@ async def process_user_bid(data: UserBidData):
     if app.state.current_bid_session is None:
         return {"message": "There are no bidding running now, please try again later"}
     
-    app.state.current_bid_session.update_bid("user", data.user_bid)
+    if not app.state.current_bid_session.update_bid("user", data.user_bid):
+        return {
+            "message": "Your bid is too low. Please bid higher than the current highest bid plus 10.",
+            "current_highest_bid": app.state.current_bid_session.current_bid,
+            "current_highest_bidder": app.state.current_bid_session.current_bidder,
+            "retry": True
+        }
     agent_bid = await query_agent_bid(data)
    
 
