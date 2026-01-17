@@ -91,14 +91,20 @@ async def process_user_bid(data: UserBidData):
         return {"message": "There are no bidding running now, please try again later"}
     
     app.state.current_bid_session.update_bid("user", data.user_bid)
-    agent_bid = query_agent_bid(data)
-    app.state.current_bid_session.update_bid("agent", agent_bid)
+    agent_bid = await query_agent_bid(data)
+   
 
     response = {
-        "message": "A bid has done",
+        "message": "Agent bid processed",
         "current_highest_bidder": app.state.current_bid_session.current_bidder,
         "current_highest_bid": app.state.current_bid_session.current_bid
     }
+    if agent_bid == -1:
+        app.state.current_bid_session.fold("agent")
+        response['end'] = True
+    else:
+        app.state.current_bid_session.update_bid("agent", agent_bid)
+        response['end'] = False
 
     return response
 
