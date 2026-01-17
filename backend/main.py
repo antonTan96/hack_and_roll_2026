@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from bidding_agent import Agent
 
 app = FastAPI()
 
@@ -13,7 +14,7 @@ app.add_middleware(
 )
 
 #configure global state variables here 
-app.state.agent_budget = 1000
+app.state.agent = Agent(budget=1000, owned_hostnames=[])
 app.state.user_owned_hostnames = []
 app.state.agent_owned_hostnames = []
 app.state.user_budget = 1000
@@ -34,7 +35,7 @@ async def query_data(hostname: str):
     pass
 
 @app.post("/fold")
-async def fold(user: bool):
+async def fold(user: bool, winning_bid: int):
     '''
     rewards hostname to winner
     '''
@@ -49,11 +50,12 @@ async def process_user_bid(user_bid: int):
     pass
 
 
-async def query_agent_bid( user_bid: int, agent_budget: int, user_owned_hostnames: list, agent_owned_hostnames: list):
+async def query_agent_bid( user_bid: int,user_owned_hostnames: list):
     '''
     returns agent bid or -1 if agent decides to fold.
     '''
-    pass
+
+    return app.state.agent.bid(user_bid, app.state.user_owned_hostnames)
     
 
 if __name__ == "__main__":
