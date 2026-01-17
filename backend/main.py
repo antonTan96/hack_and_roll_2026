@@ -81,6 +81,12 @@ async def process_user_bid(data: UserBidData):
     '''
     pass
 
+@app.post("/restart")
+async def restart():
+    app.state.agent = Agent(budget=1000, owned_hostnames=set())
+    app.state.user_owned_hostnames = set()
+    app.state.user_budget = 1000
+    return {"message": "Game restarted"}
 
 async def query_agent_bid(data: UserBidData) -> int:
     '''
