@@ -3,10 +3,7 @@
      0. Safety Guards
   ---------------------------------- */
 
-  // Only run in top-level frame
   if (window.top !== window.self) return;
-
-  // Prevent double injection
   if (document.getElementById("auction-overlay")) return;
 
   /* ---------------------------------
@@ -41,8 +38,8 @@
 
   blockedEvents.forEach(evt => {
     window.addEventListener(evt, blockEvent, {
-        capture: true,
-        passive: false
+      capture: true,
+      passive: false
     });
   });
 
@@ -73,7 +70,10 @@
         placeholder="Enter your bid"
       />
 
-      <button id="bid-btn">Place Bid</button>
+      <div style="display:flex; gap:8px; justify-content:center;">
+        <button id="bid-btn">Place Bid</button>
+        <button id="fold-btn">Fold</button>
+      </div>
 
       <p id="status-text"></p>
     </div>
@@ -84,9 +84,9 @@
   const dialog = document.getElementById("auction-dialog");
   const bidInput = document.getElementById("bid-input");
   const bidBtn = document.getElementById("bid-btn");
+  const foldBtn = document.getElementById("fold-btn");
   const statusText = document.getElementById("status-text");
 
-  // Force initial focus
   dialog.focus();
   bidInput.focus();
 
@@ -106,7 +106,7 @@
   );
 
   /* ---------------------------------
-     4. Auction Logic (Mock)
+     4. Auction Logic
   ---------------------------------- */
 
   bidBtn.onclick = () => {
@@ -119,10 +119,10 @@
 
     bidInput.disabled = true;
     bidBtn.disabled = true;
+    foldBtn.disabled = true;
 
     statusText.textContent = "Auction in progress...";
 
-    // Simulate AI bidding delay
     setTimeout(() => {
       const userWon = true; // Replace with backend response
 
@@ -130,26 +130,40 @@
         statusText.textContent = "You won the auction! Access granted.";
         setTimeout(unlockPage, 800);
       } else {
-        statusText.textContent = "You lost the auction. Access denied.";
-        // Optional: window.close();
+        statusText.textContent = "You lost the auction.";
+        setTimeout(redirectAway, 800);
       }
     }, 1500);
   };
 
+  foldBtn.onclick = () => {
+    statusText.textContent = "You folded. Access denied.";
+    setTimeout(redirectAway, 500);
+  };
+
   /* ---------------------------------
-     5. Unlock Page
+     5. Unlock / Redirect
   ---------------------------------- */
 
-  function unlockPage() {
-    overlay.remove();
+  function cleanup() {
+    blockedEvents.forEach(evt => {
+      window.removeEventListener(evt, blockEvent, {
+        capture: true,
+        passive: false
+      });
+    });
 
-    // Re-enable scrolling
     document.documentElement.style.overflow = "";
     document.body.style.overflow = "";
+  }
 
-    // Remove global blockers
-    blockedEvents.forEach(evt =>
-      window.removeEventListener(evt, blockEvent, true)
-    );
+  function unlockPage() {
+    cleanup();
+    overlay.remove();
+  }
+
+  function redirectAway() {
+    cleanup();
+    window.location.href = "about:blank";
   }
 })();
