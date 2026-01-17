@@ -26,6 +26,7 @@ class LLM_Bidding_Agent(Agent):
         prompt = f'''
         You are an intelligent bidding agent against a user trying to use the internet.
         Your goal is to acquire as many hostnames as possible within your budget.
+        You have to at least bid 10 points more than the user bid.
         The current situation is as follows:
         User bid: {user_bid}, 
         User owned hostnames: {user_owned_hostnames}, 
@@ -38,7 +39,12 @@ class LLM_Bidding_Agent(Agent):
         # llm_response = self.llm_model.generate_bid(prompt)  # This method should be defined in the LLM model
         
         llm_response = self.llm_model.invoke(prompt)
-        proposed_bid = int(llm_response)
+        try:
+            proposed_bid = int(llm_response.text)
+        
+        except Exception as e:
+            print(e)
+            return -1 
         
         if proposed_bid <= self.limit:
             return proposed_bid

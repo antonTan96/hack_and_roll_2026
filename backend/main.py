@@ -5,6 +5,7 @@ from model.fold_data_model import FoldData
 from model.user_bid_data_model import UserBidData
 from bidding_agent import Agent
 from bidding import Bidding
+from llm_bidding_agent import LLM_Bidding_Agent
 
 app = FastAPI()
 
@@ -18,7 +19,7 @@ app.add_middleware(
 )
 
 #configure global state variables here 
-app.state.agent = Agent(budget=1000, owned_hostnames=set())
+app.state.agent = LLM_Bidding_Agent(budget=1000, owned_hostnames=set())
 app.state.user_owned_hostnames = set()
 app.state.transaction_history = []
 app.state.user_budget = 1000
@@ -107,8 +108,10 @@ async def process_user_bid(data: UserBidData):
     if agent_bid == -1:
         response['end'] = True
     else:
-        app.state.current_bid_session.update_bid("agent", agent_bid)
-        response['end'] = False
+        if not app.state.current_bid_session.update_bid("agent", agent_bid):
+            response['end'] = True
+        else:
+            response['end'] = False
             
     response["current_highest_bid"] = app.state.current_bid_session.current_bid
     response["current_highest_bidder"] = app.state.current_bid_session.current_bidder
