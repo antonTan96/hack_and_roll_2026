@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "Website Usage Auction",
+  "version": "0.1",
+  "description": "Prompts users to bid with an AI agent before using a website.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["dialog.css"],
+      "all_frames": true
+    }
+  ]
+}

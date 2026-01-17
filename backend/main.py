@@ -33,7 +33,7 @@ async def health_check():
     return {"status": "healthy"}
 
 
-@app.post("/query_data/{hostname}")
+@app.get("/query_data/{hostname}")
 async def query_data(hostname: str):
     '''
     Check database if user or AI owns hostname. if neither, ask frontend to start bidding process
@@ -97,6 +97,12 @@ async def process_user_bid(data: UserBidData):
     return response
 
 
+@app.post("/restart")
+async def restart():
+    app.state.agent = Agent(budget=1000, owned_hostnames=set())
+    app.state.user_owned_hostnames = set()
+    app.state.user_budget = 1000
+    return {"message": "Game restarted"}
 
 async def query_agent_bid(data: UserBidData) -> int:
     '''
