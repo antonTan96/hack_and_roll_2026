@@ -89,7 +89,10 @@
 
   // Case 1: User already owns site
   if (owned_by_user) {
+    console.log("User owns site, no auction needed.");
     removeBlockers();
+    const overlay = document.getElementById("auction-overlay");
+    if (overlay) overlay.remove();
     return;
   }
 
@@ -293,6 +296,7 @@
           const nextMin = currentHighestBid + 10;
           updateStatus(`Current: $${currentHighestBid} (${data.current_highest_bidder}). Min: $${nextMin}`);
           
+          
           bidBtn.disabled = false;
           decibelDisplay.textContent = "-- dB";
         } else {
@@ -301,7 +305,8 @@
           
           setTimeout(() => {
             removeBlockers();
-            overlay.remove();
+            const overlayElement = document.getElementById("auction-overlay");
+            if (overlayElement) overlayElement.remove();
           }, 1500);
         }
       } catch (err) {
