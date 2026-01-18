@@ -6,6 +6,7 @@ from model.user_bid_data_model import UserBidData
 from bidding_agent import Agent
 from bidding import Bidding
 from llm_bidding_agent import LLM_Bidding_Agent
+from predetermined_llm_bidding_agent import LLM_Bidding_Agent_v2
 
 app = FastAPI()
 
@@ -81,7 +82,7 @@ async def start_bid(url: str):
     :type url: str
     """
     app.state.current_bid_session = Bidding(url)
-    if type(app.state.agent) == LLM_Bidding_Agent:
+    if type(app.state.agent) == LLM_Bidding_Agent or type(app.state.agent) == LLM_Bidding_Agent_v2:
         app.state.agent.add_website_descriptions(url)
 
 
