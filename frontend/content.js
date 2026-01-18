@@ -8,6 +8,61 @@
 
   const hostname = window.location.hostname;
 
+  const blockedEvents = [
+    "click",
+    "mousedown",
+    "mouseup",
+    "keydown",
+    "keypress",
+    "keyup",
+    "wheel",
+    "touchstart",
+    "touchmove",
+    "contextmenu"
+  ];
+
+  /* ---------------------------------
+     Block interactions immediately
+  ---------------------------------- */
+  
+  function blockEvent(e) {
+    const dialog = document.getElementById("auction-dialog");
+    if (dialog && dialog.contains(e.target)) return;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+
+  function installBlockers() {
+    blockedEvents.forEach(evt => {
+      window.addEventListener(evt, blockEvent, {
+        capture: true,
+        passive: false
+      });
+    });
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+    
+    // Create blank overlay immediately
+    const overlay = document.createElement("div");
+    overlay.id = "auction-overlay";
+    overlay.innerHTML = "";
+    document.body.appendChild(overlay);
+  }
+
+  function removeBlockers() {
+    blockedEvents.forEach(evt => {
+      window.removeEventListener(evt, blockEvent, {
+        capture: true,
+        passive: false
+      });
+    });
+    document.documentElement.style.overflow = "";
+    document.body.style.overflow = "";
+  }
+
+  // Install blockers BEFORE querying backend
+  installBlockers();
+
   /* ---------------------------------
      1. Query Backend First
   ---------------------------------- */
@@ -34,6 +89,7 @@
 
   // Case 1: User already owns site
   if (owned_by_user) {
+    removeBlockers();
     return;
   }
 
@@ -42,19 +98,6 @@
     window.location.href = "about:blank";
     return;
   }
-
-  const blockedEvents = [
-    "click",
-    "mousedown",
-    "mouseup",
-    "keydown",
-    "keypress",
-    "keyup",
-    "wheel",
-    "touchstart",
-    "touchmove",
-    "contextmenu"
-  ];
 
   // Case 3: Auction required (Both are false)
   try {
@@ -81,56 +124,19 @@
   ---------------------------------- */
 
   function startAuction() {
-    installBlockers();
+    // Blockers already installed, just inject dialog
     injectDialog();
   }
 
   /* ---------------------------------
-     3. Global Event Blocking (Modal)
-  ---------------------------------- */
-
-  function blockEvent(e) {
-    const dialog = document.getElementById("auction-dialog");
-
-    if (dialog && dialog.contains(e.target)) return;
-
-    e.stopPropagation();
-    e.preventDefault();
-  }
-
-  function installBlockers() {
-    blockedEvents.forEach(evt => {
-      window.addEventListener(evt, blockEvent, {
-        capture: true,
-        passive: false
-      });
-    });
-
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-  }
-
-  function removeBlockers() {
-    blockedEvents.forEach(evt => {
-      window.removeEventListener(evt, blockEvent, {
-        capture: true,
-        passive: false
-      });
-    });
-
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
-  }
-
-  /* ---------------------------------
-     4. Dialog Injection
+     3. Dialog Injection
   ---------------------------------- */
 
   function injectDialog() {
-    const overlay = document.createElement("div");
-    overlay.id = "auction-overlay";
+    const overlay = document.getElementById("auction-overlay");
+    if (!overlay) return; // Safety check
 
-    // Added <span id="budget-display"> to the HTML
+    // Populate the overlay with dialog content
     overlay.innerHTML = `
       <div id="auction-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <div id="budget-display">Budget: Fetching...</div>
@@ -147,8 +153,6 @@
         <p id="status-text"></p>
       </div>
     `;
-
-    document.body.appendChild(overlay);
 
     const budgetDisplay = document.getElementById("budget-display");
     const bidInput = document.getElementById("bid-input");
@@ -268,7 +272,7 @@
     foldBtn.onclick = async () => {
       updateStatus("You folded. Access denied.");
       // If user folds, the winner is 'ai' (or however your backend tracks it)
-      await finalizeAuction(hostname, false, 0); 
+      await finalizeAuction(hostname, false, currentHighestBid); 
       
       setTimeout(() => {
         removeBlockers();
