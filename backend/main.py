@@ -19,7 +19,7 @@ app.add_middleware(
 )
 
 #configure global state variables here 
-app.state.agent = LLM_Bidding_Agent(budget=1000, owned_hostnames=set())
+app.state.agent = Agent(budget=1000, owned_hostnames=set())
 app.state.user_owned_hostnames = set()
 app.state.transaction_history = []
 app.state.user_budget = 1000

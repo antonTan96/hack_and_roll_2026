@@ -142,11 +142,12 @@
         <div id="budget-display">Budget: Fetching...</div>
         <h2>Website Access Auction</h2>
         <p>Bid against an AI agent to use <b>${hostname}</b>.</p>
+        <p>🎤 <strong>SHOUT YOUR BID!</strong> The louder you yell, the higher your bid.</p>
 
-        <input type="number" id="bid-input" placeholder="Enter your bid" />
+        <div id="decibel-display" style="font-size: 2em; margin: 20px 0; color: #00ff00;">-- dB</div>
 
         <div class="buttons">
-          <button id="bid-btn">Place Bid</button>
+          <button id="bid-btn">🎤 Start Shouting</button>
           <button id="fold-btn">Fold</button>
         </div>
 
@@ -155,20 +156,23 @@
     `;
 
     const budgetDisplay = document.getElementById("budget-display");
-    const bidInput = document.getElementById("bid-input");
+    const decibelDisplay = document.getElementById("decibel-display");
     const bidBtn = document.getElementById("bid-btn");
     const foldBtn = document.getElementById("fold-btn");
     const statusText = document.getElementById("status-text");
 
     let currentHighestBid = 0;
-    let userBudget = 0; // Local budget state
+    let userBudget = 0;
+    let audioContext = null;
+    let analyser = null;
+    let microphone = null;
 
     // --- Fetch Budget ---
     const fetchBudget = async () => {
       try {
         const res = await fetch("http://localhost:8000/budget");
         const data = await res.json();
-        userBudget = data.user_budget; // assuming backend returns { budget: 1000 }
+        userBudget = data.user_budget;
         console.log(data);
         budgetDisplay.textContent = `Budget: $${userBudget}`;
       } catch (err) {
@@ -181,28 +185,86 @@
 
     const updateStatus = (msg) => { statusText.textContent = msg; };
 
+    // --- Microphone & Decibel Measurement ---
+    async function measureDecibels(durationMs = 3000) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        analyser = audioContext.createAnalyser();
+        microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(analyser);
+        analyser.fftSize = 512;
+        
+        const bufferLength = analyser.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+        let maxDecibel = 0;
+
+        return new Promise((resolve) => {
+          const startTime = Date.now();
+          
+          function measure() {
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / bufferLength;
+            const decibel = Math.round(average * 0.7); // Scale to reasonable bid range
+            
+            if (decibel > maxDecibel) {
+              maxDecibel = decibel;
+            }
+            
+            decibelDisplay.textContent = `${decibel} dB (Max: ${maxDecibel})`;
+            
+            if (Date.now() - startTime < durationMs) {
+              requestAnimationFrame(measure);
+            } else {
+              stream.getTracks().forEach(track => track.stop());
+              audioContext.close();
+              resolve(maxDecibel);
+            }
+          }
+          
+          measure();
+        });
+      } catch (err) {
+        console.error("Microphone access error:", err);
+        updateStatus("Microphone access denied!");
+        return 0;
+      }
+    }
+
     bidBtn.onclick = async () => {
-      const userBid = parseInt(bidInput.value, 10);
+      bidBtn.disabled = true;
+      updateStatus("🎤 SHOUT NOW! (3 seconds)");
+      decibelDisplay.style.color = "#ff0000";
+      
+      const userBid = await measureDecibels(3000);
+      decibelDisplay.style.color = "#00ff00";
+      
       const minRequired = currentHighestBid + 10;
 
       // --- Frontend Validation ---
-      if (!userBid) {
-        updateStatus("Please enter a valid number.");
+      if (!userBid || userBid === 0) {
+        updateStatus("No sound detected! Try shouting louder.");
+        bidBtn.disabled = false;
         return;
       }
       
       if (userBid > userBudget) {
-        updateStatus(`Insufficient funds! Your budget is only $${userBudget}.`);
+        updateStatus(`Insufficient funds! Your budget is only $${userBudget}. Your shout bid: $${userBid}`);
+        bidBtn.disabled = false;
         return;
       }
 
       if (userBid < minRequired) {
-        updateStatus(`Bid too low! You must bid at least $${minRequired}.`);
+        updateStatus(`Bid too low! Required: $${minRequired}, Your shout: $${userBid}. Auto-folding...`);
+        await finalizeAuction(hostname, false, 0);
+        
+        setTimeout(() => {
+          removeBlockers();
+          window.location.href = "about:blank";
+        }, 2000);
         return;
       }
 
-      bidInput.disabled = true;
-      bidBtn.disabled = true;
       updateStatus("Agent is thinking...");
 
       try {
@@ -219,9 +281,8 @@
           if (userBid > userBudget) {
               updateStatus("Rejected: Bid exceeds current budget.");
           } else {
-              updateStatus("Rejected: Someone outbid you while you were typing!");
+              updateStatus("Rejected: Someone outbid you while you were shouting!");
           }
-          bidInput.disabled = false;
           bidBtn.disabled = false;
           return;
         }
@@ -232,10 +293,8 @@
           const nextMin = currentHighestBid + 10;
           updateStatus(`Current: $${currentHighestBid} (${data.current_highest_bidder}). Min: $${nextMin}`);
           
-          bidInput.disabled = false;
           bidBtn.disabled = false;
-          bidInput.value = ""; 
-          bidInput.focus();
+          decibelDisplay.textContent = "-- dB";
         } else {
           updateStatus(`AI Folded! You won with $${currentHighestBid}.`);
           await finalizeAuction(hostname, true, currentHighestBid);
@@ -248,7 +307,6 @@
       } catch (err) {
         console.error("Bidding error:", err);
         updateStatus("Connection lost.");
-        bidInput.disabled = false;
         bidBtn.disabled = false;
       }
     };
