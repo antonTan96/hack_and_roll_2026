@@ -36,13 +36,13 @@ async def get_budget():
     return {"user_budget": app.state.user_budget}
 
 
-@app.get("/query_data/{hostname}")
-async def query_data(hostname: str):
+@app.get("/query_data")
+async def query_data(url: str):
     '''
-    Check database if user or AI owns hostname. if neither, ask frontend to start bidding process
+    Check database if user or AI owns URL. if neither, ask frontend to start bidding process
     '''
-    own_by_user: bool = hostname in app.state.user_owned_hostnames
-    own_by_ai: bool = app.state.agent.owns_hostname(hostname)
+    own_by_user: bool = url in app.state.user_owned_hostnames
+    own_by_ai: bool = app.state.agent.owns_hostname(url)
     return {
         "owned_by_user": own_by_user,
         "owned_by_ai": own_by_ai
@@ -72,17 +72,17 @@ async def fold(data: FoldData):
     return {"message": "Fold processed"}
 
 
-@app.post("/start_bid/{hostname}")
-async def start_bid(hostname: str):
+@app.post("/start_bid")
+async def start_bid(url: str):
     """
     Starts a bid
     
-    :param hostname: hostname to bid
-    :type hostname: str
+    :param url: URL to bid
+    :type url: str
     """
-    app.state.current_bid_session = Bidding(hostname)
+    app.state.current_bid_session = Bidding(url)
     if type(app.state.agent) == LLM_Bidding_Agent:
-        app.state.agent.add_website_descriptions(hostname)
+        app.state.agent.add_website_descriptions(url)
 
 
 @app.post("/bid")

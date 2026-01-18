@@ -1,64 +1,78 @@
-(async function () {
-  /* ---------------------------------
-     0. Safety Guards
-  ---------------------------------- */
+let currentUrl = window.location.href;
+let urlCheckInterval = null;
 
-  if (window.top !== window.self) return;
-  if (document.getElementById("auction-overlay")) return;
+const blockedEvents = [
+  "click",
+  "mousedown",
+  "mouseup",
+  "keydown",
+  "keypress",
+  "keyup",
+  "wheel",
+  "touchstart",
+  "touchmove",
+  "contextmenu"
+];
 
-  const hostname = window.location.hostname;
+/* ---------------------------------
+   Block interactions
+---------------------------------- */
 
-  const blockedEvents = [
-    "click",
-    "mousedown",
-    "mouseup",
-    "keydown",
-    "keypress",
-    "keyup",
-    "wheel",
-    "touchstart",
-    "touchmove",
-    "contextmenu"
-  ];
+function blockEvent(e) {
+  const dialog = document.getElementById("auction-dialog");
+  if (dialog && dialog.contains(e.target)) return;
+  e.stopPropagation();
+  e.preventDefault();
+}
 
-  /* ---------------------------------
-     Block interactions immediately
-  ---------------------------------- */
+function installBlockers() {
+  // Remove any existing blockers first
+  removeBlockers();
   
-  function blockEvent(e) {
-    const dialog = document.getElementById("auction-dialog");
-    if (dialog && dialog.contains(e.target)) return;
-    e.stopPropagation();
-    e.preventDefault();
-  }
-
-  function installBlockers() {
-    blockedEvents.forEach(evt => {
-      window.addEventListener(evt, blockEvent, {
-        capture: true,
-        passive: false
-      });
+  blockedEvents.forEach(evt => {
+    window.addEventListener(evt, blockEvent, {
+      capture: true,
+      passive: false
     });
-    document.documentElement.style.overflow = "hidden";
-    document.body.style.overflow = "hidden";
-    
-    // Create blank overlay immediately
+  });
+  document.documentElement.style.overflow = "hidden";
+  document.body.style.overflow = "hidden";
+  
+  // Create blank overlay immediately if it doesn't exist
+  if (!document.getElementById("auction-overlay")) {
     const overlay = document.createElement("div");
     overlay.id = "auction-overlay";
     overlay.innerHTML = "";
     document.body.appendChild(overlay);
   }
+}
 
-  function removeBlockers() {
-    blockedEvents.forEach(evt => {
-      window.removeEventListener(evt, blockEvent, {
-        capture: true,
-        passive: false
-      });
+function removeBlockers() {
+  blockedEvents.forEach(evt => {
+    window.removeEventListener(evt, blockEvent, {
+      capture: true,
+      passive: false
     });
-    document.documentElement.style.overflow = "";
-    document.body.style.overflow = "";
+  });
+  document.documentElement.style.overflow = "";
+  document.body.style.overflow = "";
+}
+
+async function startAuctionProcess() {
+  /* ---------------------------------
+     0. Safety Guards
+  ---------------------------------- */
+
+  if (window.top !== window.self) return;
+  
+  // Clean up any existing overlay
+  const existingOverlay = document.getElementById("auction-overlay");
+  if (existingOverlay) {
+    existingOverlay.remove();
   }
+
+  const fullUrl = window.location.href;
+  currentUrl = fullUrl;
 
   // Install blockers BEFORE querying backend
   installBlockers();
@@ -69,7 +83,7 @@
 
   let ownership;
   try {
-    const res = await fetch(`http://localhost:8000/query_data/${hostname}`, {
+    const res = await fetch(`http://localhost:8000/query_data?url=${encodeURIComponent(fullUrl)}`, {
       method: "GET",
       credentials: "omit"
     });
@@ -104,7 +118,7 @@
 
   // Case 3: Auction required (Both are false)
   try {
-    const startRes = await fetch(`http://localhost:8000/start_bid/${hostname}`, {
+    const startRes = await fetch(`http://localhost:8000/start_bid?url=${encodeURIComponent(fullUrl)}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -139,12 +153,17 @@
     const overlay = document.getElementById("auction-overlay");
     if (!overlay) return; // Safety check
 
+    // Truncate URL if too long (keep first 40 and last 20 chars)
+    const displayUrl = fullUrl.length > 70 
+      ? `${fullUrl.substring(0, 30)}...${fullUrl.substring(fullUrl.length - 10)}`
+      : fullUrl;
+
     // Populate the overlay with dialog content
     overlay.innerHTML = `
       <div id="auction-dialog" role="dialog" aria-modal="true" tabindex="-1">
         <div id="budget-display">Budget: Fetching...</div>
         <h2>Website Access Auction</h2>
-        <p>Bid against an AI agent to use <b>${hostname}</b>.</p>
+        <p>Bid against an AI agent to use <b>${displayUrl}</b>.</p>
         <p>🎤 <strong>SHOUT YOUR BID!</strong> The louder you yell, the higher your bid.</p>
 
         <div id="decibel-display" style="font-size: 2em; margin: 20px 0; color: #00ff00;">-- dB</div>
@@ -259,7 +278,7 @@
 
       if (userBid < minRequired) {
         updateStatus(`Bid too low! Required: $${minRequired}, Your shout: $${userBid}. Auto-folding...`);
-        await finalizeAuction(hostname, false, 0);
+        await finalizeAuction(fullUrl, false, 0);
         
         setTimeout(() => {
           removeBlockers();
@@ -301,7 +320,7 @@
           decibelDisplay.textContent = "-- dB";
         } else {
           updateStatus(`AI Folded! You won with $${currentHighestBid}.`);
-          await finalizeAuction(hostname, true, currentHighestBid);
+          await finalizeAuction(fullUrl, true, currentHighestBid);
           
           setTimeout(() => {
             removeBlockers();
@@ -335,7 +354,7 @@
     foldBtn.onclick = async () => {
       updateStatus("You folded. Access denied.");
       // If user folds, the winner is 'ai' (or however your backend tracks it)
-      await finalizeAuction(hostname, false, currentHighestBid); 
+      await finalizeAuction(fullUrl, false, currentHighestBid); 
       
       setTimeout(() => {
         removeBlockers();
@@ -343,4 +362,18 @@
       }, 1000);
     };
   }
-})();
+}
+
+// Monitor URL changes
+function monitorUrlChanges() {
+  urlCheckInterval = setInterval(() => {
+    if (window.location.href !== currentUrl) {
+      console.log("URL changed, restarting auction process");
+      startAuctionProcess();
+    }
+  }, 500);
+}
+
+// Start the auction process and monitor for URL changes
+startAuctionProcess();
+monitorUrlChanges();
